@@ -100,6 +100,23 @@ var Error = class extends Result {
     return false;
   }
 };
+function remainderInt(a2, b) {
+  if (b === 0) {
+    return 0;
+  } else {
+    return a2 % b;
+  }
+}
+function divideInt(a2, b) {
+  return Math.trunc(divideFloat(a2, b));
+}
+function divideFloat(a2, b) {
+  if (b === 0) {
+    return 0;
+  } else {
+    return a2 / b;
+  }
+}
 function makeError(variant, file, module, line, fn, message, extra) {
   let error = new globalThis.Error(message);
   error.gleam_error = variant;
@@ -159,6 +176,33 @@ function reverse_and_prepend(loop$prefix, loop$suffix) {
 function reverse(list4) {
   return reverse_and_prepend(list4, toList([]));
 }
+function filter_loop(loop$list, loop$fun, loop$acc) {
+  while (true) {
+    let list4 = loop$list;
+    let fun = loop$fun;
+    let acc = loop$acc;
+    if (list4 instanceof Empty) {
+      return reverse(acc);
+    } else {
+      let first$1 = list4.head;
+      let rest$1 = list4.tail;
+      let _block;
+      let $ = fun(first$1);
+      if ($) {
+        _block = prepend(first$1, acc);
+      } else {
+        _block = acc;
+      }
+      let new_acc = _block;
+      loop$list = rest$1;
+      loop$fun = fun;
+      loop$acc = new_acc;
+    }
+  }
+}
+function filter(list4, predicate) {
+  return filter_loop(list4, predicate, toList([]));
+}
 function map_loop(loop$list, loop$fun, loop$acc) {
   while (true) {
     let list4 = loop$list;
@@ -178,22 +222,44 @@ function map_loop(loop$list, loop$fun, loop$acc) {
 function map(list4, fun) {
   return map_loop(list4, fun, toList([]));
 }
+function index_map_loop(loop$list, loop$fun, loop$index, loop$acc) {
+  while (true) {
+    let list4 = loop$list;
+    let fun = loop$fun;
+    let index2 = loop$index;
+    let acc = loop$acc;
+    if (list4 instanceof Empty) {
+      return reverse(acc);
+    } else {
+      let first$1 = list4.head;
+      let rest$1 = list4.tail;
+      let acc$1 = prepend(fun(first$1, index2), acc);
+      loop$list = rest$1;
+      loop$fun = fun;
+      loop$index = index2 + 1;
+      loop$acc = acc$1;
+    }
+  }
+}
+function index_map(list4, fun) {
+  return index_map_loop(list4, fun, 0, toList([]));
+}
 function append_loop(loop$first, loop$second) {
   while (true) {
-    let first = loop$first;
+    let first2 = loop$first;
     let second = loop$second;
-    if (first instanceof Empty) {
+    if (first2 instanceof Empty) {
       return second;
     } else {
-      let first$1 = first.head;
-      let rest$1 = first.tail;
+      let first$1 = first2.head;
+      let rest$1 = first2.tail;
       loop$first = rest$1;
       loop$second = prepend(first$1, second);
     }
   }
 }
-function append(first, second) {
-  return append_loop(reverse(first), second);
+function append(first2, second) {
+  return append_loop(reverse(first2), second);
 }
 function fold(loop$list, loop$initial, loop$fun) {
   while (true) {
@@ -597,6 +663,9 @@ function map2(decoder, transformer) {
 }
 
 // build/dev/javascript/gleam_stdlib/gleam_stdlib.mjs
+function identity(x) {
+  return x;
+}
 function to_string(term) {
   return term.toString();
 }
@@ -627,6 +696,290 @@ var trim_start_regex = /* @__PURE__ */ new RegExp(
   `^[${unicode_whitespaces}]*`
 );
 var trim_end_regex = /* @__PURE__ */ new RegExp(`[${unicode_whitespaces}]*$`);
+function floor(float2) {
+  return Math.floor(float2);
+}
+function round2(float2) {
+  return Math.round(float2);
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/float.mjs
+function negate(x) {
+  return -1 * x;
+}
+function round(x) {
+  let $ = x >= 0;
+  if ($) {
+    return round2(x);
+  } else {
+    return 0 - round2(negate(x));
+  }
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/int.mjs
+function modulo(dividend, divisor) {
+  if (divisor === 0) {
+    return new Error(void 0);
+  } else {
+    let remainder$1 = remainderInt(dividend, divisor);
+    let $ = remainder$1 * divisor < 0;
+    if ($) {
+      return new Ok(remainder$1 + divisor);
+    } else {
+      return new Ok(remainder$1);
+    }
+  }
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/pair.mjs
+function first(pair) {
+  let a2;
+  a2 = pair[0];
+  return a2;
+}
+
+// build/dev/javascript/gleam_time/gleam/time/duration.mjs
+var Duration = class extends CustomType {
+  constructor(seconds2, nanoseconds2) {
+    super();
+    this.seconds = seconds2;
+    this.nanoseconds = nanoseconds2;
+  }
+};
+function seconds(amount) {
+  return new Duration(amount, 0);
+}
+function to_seconds(duration) {
+  let seconds$1 = identity(duration.seconds);
+  let nanoseconds$1 = identity(duration.nanoseconds);
+  return seconds$1 + nanoseconds$1 / 1e9;
+}
+
+// build/dev/javascript/gleam_time/gleam_time_ffi.mjs
+function system_time() {
+  const now = Date.now();
+  const milliseconds = now % 1e3;
+  const nanoseconds2 = milliseconds * 1e6;
+  const seconds2 = (now - milliseconds) / 1e3;
+  return [seconds2, nanoseconds2];
+}
+
+// build/dev/javascript/gleam_time/gleam/time/calendar.mjs
+var Date2 = class extends CustomType {
+  constructor(year, month, day) {
+    super();
+    this.year = year;
+    this.month = month;
+    this.day = day;
+  }
+};
+var TimeOfDay = class extends CustomType {
+  constructor(hours, minutes, seconds2, nanoseconds2) {
+    super();
+    this.hours = hours;
+    this.minutes = minutes;
+    this.seconds = seconds2;
+    this.nanoseconds = nanoseconds2;
+  }
+};
+var January = class extends CustomType {
+};
+var February = class extends CustomType {
+};
+var March = class extends CustomType {
+};
+var April = class extends CustomType {
+};
+var May = class extends CustomType {
+};
+var June = class extends CustomType {
+};
+var July = class extends CustomType {
+};
+var August = class extends CustomType {
+};
+var September = class extends CustomType {
+};
+var October = class extends CustomType {
+};
+var November = class extends CustomType {
+};
+var December = class extends CustomType {
+};
+function month_to_int(month) {
+  if (month instanceof January) {
+    return 1;
+  } else if (month instanceof February) {
+    return 2;
+  } else if (month instanceof March) {
+    return 3;
+  } else if (month instanceof April) {
+    return 4;
+  } else if (month instanceof May) {
+    return 5;
+  } else if (month instanceof June) {
+    return 6;
+  } else if (month instanceof July) {
+    return 7;
+  } else if (month instanceof August) {
+    return 8;
+  } else if (month instanceof September) {
+    return 9;
+  } else if (month instanceof October) {
+    return 10;
+  } else if (month instanceof November) {
+    return 11;
+  } else {
+    return 12;
+  }
+}
+
+// build/dev/javascript/gleam_time/gleam/time/timestamp.mjs
+var Timestamp = class extends CustomType {
+  constructor(seconds2, nanoseconds2) {
+    super();
+    this.seconds = seconds2;
+    this.nanoseconds = nanoseconds2;
+  }
+};
+function normalise(timestamp) {
+  let multiplier = 1e9;
+  let nanoseconds2 = remainderInt(timestamp.nanoseconds, multiplier);
+  let overflow = timestamp.nanoseconds - nanoseconds2;
+  let seconds2 = timestamp.seconds + divideInt(overflow, multiplier);
+  let $ = nanoseconds2 >= 0;
+  if ($) {
+    return new Timestamp(seconds2, nanoseconds2);
+  } else {
+    return new Timestamp(seconds2 - 1, multiplier + nanoseconds2);
+  }
+}
+function system_time2() {
+  let $ = system_time();
+  let seconds2;
+  let nanoseconds2;
+  seconds2 = $[0];
+  nanoseconds2 = $[1];
+  return normalise(new Timestamp(seconds2, nanoseconds2));
+}
+function duration_to_minutes(duration) {
+  return round(to_seconds(duration) / 60);
+}
+function modulo2(n, m) {
+  let $ = modulo(n, m);
+  if ($ instanceof Ok) {
+    let n$1 = $[0];
+    return n$1;
+  } else {
+    return 0;
+  }
+}
+function floored_div(numerator, denominator) {
+  let n = divideFloat(identity(numerator), denominator);
+  return round(floor(n));
+}
+function to_civil(minutes) {
+  let raw_day = floored_div(minutes, 60 * 24) + 719468;
+  let _block;
+  let $ = raw_day >= 0;
+  if ($) {
+    _block = globalThis.Math.trunc(raw_day / 146097);
+  } else {
+    _block = globalThis.Math.trunc((raw_day - 146096) / 146097);
+  }
+  let era = _block;
+  let day_of_era = raw_day - era * 146097;
+  let year_of_era = globalThis.Math.trunc(
+    (day_of_era - globalThis.Math.trunc(day_of_era / 1460) + globalThis.Math.trunc(
+      day_of_era / 36524
+    ) - globalThis.Math.trunc(day_of_era / 146096)) / 365
+  );
+  let year = year_of_era + era * 400;
+  let day_of_year = day_of_era - (365 * year_of_era + globalThis.Math.trunc(
+    year_of_era / 4
+  ) - globalThis.Math.trunc(year_of_era / 100));
+  let mp = globalThis.Math.trunc((5 * day_of_year + 2) / 153);
+  let _block$1;
+  let $1 = mp < 10;
+  if ($1) {
+    _block$1 = mp + 3;
+  } else {
+    _block$1 = mp - 9;
+  }
+  let month = _block$1;
+  let day = day_of_year - globalThis.Math.trunc((153 * mp + 2) / 5) + 1;
+  let _block$2;
+  let $2 = month <= 2;
+  if ($2) {
+    _block$2 = year + 1;
+  } else {
+    _block$2 = year;
+  }
+  let year$1 = _block$2;
+  return [year$1, month, day];
+}
+function to_calendar_from_offset(timestamp, offset) {
+  let total = timestamp.seconds + offset * 60;
+  let seconds2 = modulo2(total, 60);
+  let total_minutes = floored_div(total, 60);
+  let minutes = globalThis.Math.trunc(modulo2(total, 60 * 60) / 60);
+  let hours = divideInt(modulo2(total, 24 * 60 * 60), 60 * 60);
+  let $ = to_civil(total_minutes);
+  let year;
+  let month;
+  let day;
+  year = $[0];
+  month = $[1];
+  day = $[2];
+  return [year, month, day, hours, minutes, seconds2];
+}
+function to_calendar(timestamp, offset) {
+  let offset$1 = duration_to_minutes(offset);
+  let $ = to_calendar_from_offset(timestamp, offset$1);
+  let year;
+  let month;
+  let day;
+  let hours;
+  let minutes;
+  let seconds2;
+  year = $[0];
+  month = $[1];
+  day = $[2];
+  hours = $[3];
+  minutes = $[4];
+  seconds2 = $[5];
+  let _block;
+  if (month === 1) {
+    _block = new January();
+  } else if (month === 2) {
+    _block = new February();
+  } else if (month === 3) {
+    _block = new March();
+  } else if (month === 4) {
+    _block = new April();
+  } else if (month === 5) {
+    _block = new May();
+  } else if (month === 6) {
+    _block = new June();
+  } else if (month === 7) {
+    _block = new July();
+  } else if (month === 8) {
+    _block = new August();
+  } else if (month === 9) {
+    _block = new September();
+  } else if (month === 10) {
+    _block = new October();
+  } else if (month === 11) {
+    _block = new November();
+  } else {
+    _block = new December();
+  }
+  let month$1 = _block;
+  let nanoseconds2 = timestamp.nanoseconds;
+  let date = new Date2(year, month$1, day);
+  let time = new TimeOfDay(hours, minutes, seconds2, nanoseconds2);
+  return [date, time];
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/bool.mjs
 function guard(requirement, consequence, alternative) {
@@ -657,10 +1010,10 @@ var option_none = /* @__PURE__ */ new None();
 var GT = /* @__PURE__ */ new Gt();
 var LT = /* @__PURE__ */ new Lt();
 var EQ = /* @__PURE__ */ new Eq();
-function compare3(a, b) {
-  if (a.name === b.name) {
+function compare3(a2, b) {
+  if (a2.name === b.name) {
     return EQ;
-  } else if (a.name < b.name) {
+  } else if (a2.name < b.name) {
     return LT;
   } else {
     return GT;
@@ -824,8 +1177,8 @@ function prepare(attributes) {
       return attributes;
     } else {
       let _pipe = attributes;
-      let _pipe$1 = sort(_pipe, (a, b) => {
-        return compare3(b, a);
+      let _pipe$1 = sort(_pipe, (a2, b) => {
+        return compare3(b, a2);
       });
       return merge(_pipe$1, empty_list);
     }
@@ -847,6 +1200,27 @@ function attribute2(name, value) {
 function class$(name) {
   return attribute2("class", name);
 }
+function style(property3, value) {
+  if (property3 === "") {
+    return class$("");
+  } else if (value === "") {
+    return class$("");
+  } else {
+    return attribute2("style", property3 + ":" + value + ";");
+  }
+}
+function title(text3) {
+  return attribute2("title", text3);
+}
+function href(url) {
+  return attribute2("href", url);
+}
+function target(value) {
+  return attribute2("target", value);
+}
+function src(url) {
+  return attribute2("src", url);
+}
 
 // build/dev/javascript/lustre/lustre/effect.mjs
 var Effect = class extends CustomType {
@@ -857,38 +1231,38 @@ var Effect = class extends CustomType {
     this.after_paint = after_paint;
   }
 };
-var empty = /* @__PURE__ */ new Effect(
+var empty2 = /* @__PURE__ */ new Effect(
   /* @__PURE__ */ toList([]),
   /* @__PURE__ */ toList([]),
   /* @__PURE__ */ toList([])
 );
 function none() {
-  return empty;
+  return empty2;
 }
 
 // build/dev/javascript/lustre/lustre/internals/mutable_map.ffi.mjs
-function empty2() {
+function empty3() {
   return null;
 }
-function get(map4, key) {
-  const value = map4?.get(key);
+function get(map3, key) {
+  const value = map3?.get(key);
   if (value != null) {
     return new Ok(value);
   } else {
     return new Error(void 0);
   }
 }
-function has_key2(map4, key) {
-  return map4 && map4.has(key);
+function has_key2(map3, key) {
+  return map3 && map3.has(key);
 }
-function insert2(map4, key, value) {
-  map4 ??= /* @__PURE__ */ new Map();
-  map4.set(key, value);
-  return map4;
+function insert2(map3, key, value) {
+  map3 ??= /* @__PURE__ */ new Map();
+  map3.set(key, value);
+  return map3;
 }
-function remove(map4, key) {
-  map4?.delete(key);
-  return map4;
+function remove(map3, key) {
+  map3?.delete(key);
+  return map3;
 }
 
 // build/dev/javascript/lustre/lustre/vdom/path.mjs
@@ -927,7 +1301,7 @@ function do_matches(loop$path, loop$candidates) {
     }
   }
 }
-function add2(parent, index2, key) {
+function add3(parent, index2, key) {
   if (key === "") {
     return new Index(index2, parent);
   } else {
@@ -974,8 +1348,8 @@ function matches(path, candidates) {
   }
 }
 var separator_event = "\n";
-function event(path, event4) {
-  return do_to_string(path, toList([separator_event, event4]));
+function event(path, event2) {
+  return do_to_string(path, toList([separator_event, event2]));
 }
 
 // build/dev/javascript/lustre/lustre/vdom/vnode.mjs
@@ -1124,44 +1498,44 @@ function text(key, mapper, content) {
 var unsafe_inner_html_kind = 3;
 
 // build/dev/javascript/lustre/lustre/internals/equals.ffi.mjs
-var isReferenceEqual = (a, b) => a === b;
-var isEqual2 = (a, b) => {
-  if (a === b) {
+var isReferenceEqual = (a2, b) => a2 === b;
+var isEqual2 = (a2, b) => {
+  if (a2 === b) {
     return true;
   }
-  if (a == null || b == null) {
+  if (a2 == null || b == null) {
     return false;
   }
-  const type = typeof a;
+  const type = typeof a2;
   if (type !== typeof b) {
     return false;
   }
   if (type !== "object") {
     return false;
   }
-  const ctor = a.constructor;
+  const ctor = a2.constructor;
   if (ctor !== b.constructor) {
     return false;
   }
-  if (Array.isArray(a)) {
-    return areArraysEqual(a, b);
+  if (Array.isArray(a2)) {
+    return areArraysEqual(a2, b);
   }
-  return areObjectsEqual(a, b);
+  return areObjectsEqual(a2, b);
 };
-var areArraysEqual = (a, b) => {
-  let index2 = a.length;
+var areArraysEqual = (a2, b) => {
+  let index2 = a2.length;
   if (index2 !== b.length) {
     return false;
   }
   while (index2--) {
-    if (!isEqual2(a[index2], b[index2])) {
+    if (!isEqual2(a2[index2], b[index2])) {
       return false;
     }
   }
   return true;
 };
-var areObjectsEqual = (a, b) => {
-  const properties = Object.keys(a);
+var areObjectsEqual = (a2, b) => {
+  const properties = Object.keys(a2);
   let index2 = properties.length;
   if (Object.keys(b).length !== index2) {
     return false;
@@ -1171,7 +1545,7 @@ var areObjectsEqual = (a, b) => {
     if (!Object.hasOwn(b, property3)) {
       return false;
     }
-    if (!isEqual2(a[property3], b[property3])) {
+    if (!isEqual2(a2[property3], b[property3])) {
       return false;
     }
   }
@@ -1189,7 +1563,7 @@ var Events = class extends CustomType {
 };
 function new$3() {
   return new Events(
-    empty2(),
+    empty3(),
     empty_list,
     empty_list
   );
@@ -1226,7 +1600,7 @@ function remove_attributes(handlers, path, attributes) {
     }
   );
 }
-function handle(events, path, name, event4) {
+function handle(events, path, name, event2) {
   let next_dispatched_paths = prepend(path, events.next_dispatched_paths);
   let events$1 = new Events(
     events.handlers,
@@ -1239,7 +1613,7 @@ function handle(events, path, name, event4) {
   );
   if ($ instanceof Ok) {
     let handler = $[0];
-    return [events$1, run(event4, handler)];
+    return [events$1, run(event2, handler)];
   } else {
     return [events$1, new Error(toList([]))];
   }
@@ -1322,12 +1696,12 @@ function do_remove_children(loop$handlers, loop$path, loop$child_index, loop$chi
 function do_remove_child(handlers, parent, child_index, child) {
   if (child instanceof Fragment) {
     let children = child.children;
-    let path = add2(parent, child_index, child.key);
+    let path = add3(parent, child_index, child.key);
     return do_remove_children(handlers, path, 0, children);
   } else if (child instanceof Element) {
     let attributes = child.attributes;
     let children = child.children;
-    let path = add2(parent, child_index, child.key);
+    let path = add3(parent, child_index, child.key);
     let _pipe = handlers;
     let _pipe$1 = remove_attributes(_pipe, path, attributes);
     return do_remove_children(_pipe$1, path, 0, children);
@@ -1335,7 +1709,7 @@ function do_remove_child(handlers, parent, child_index, child) {
     return handlers;
   } else {
     let attributes = child.attributes;
-    let path = add2(parent, child_index, child.key);
+    let path = add3(parent, child_index, child.key);
     return remove_attributes(handlers, path, attributes);
   }
 }
@@ -1372,13 +1746,13 @@ function do_add_children(loop$handlers, loop$mapper, loop$path, loop$child_index
 function do_add_child(handlers, mapper, parent, child_index, child) {
   if (child instanceof Fragment) {
     let children = child.children;
-    let path = add2(parent, child_index, child.key);
+    let path = add3(parent, child_index, child.key);
     let composed_mapper = compose_mapper(mapper, child.mapper);
     return do_add_children(handlers, composed_mapper, path, 0, children);
   } else if (child instanceof Element) {
     let attributes = child.attributes;
     let children = child.children;
-    let path = add2(parent, child_index, child.key);
+    let path = add3(parent, child_index, child.key);
     let composed_mapper = compose_mapper(mapper, child.mapper);
     let _pipe = handlers;
     let _pipe$1 = add_attributes(_pipe, composed_mapper, path, attributes);
@@ -1387,7 +1761,7 @@ function do_add_child(handlers, mapper, parent, child_index, child) {
     return handlers;
   } else {
     let attributes = child.attributes;
-    let path = add2(parent, child_index, child.key);
+    let path = add3(parent, child_index, child.key);
     let composed_mapper = compose_mapper(mapper, child.mapper);
     return add_attributes(handlers, composed_mapper, path, attributes);
   }
@@ -1424,7 +1798,7 @@ function element2(tag, attributes, children) {
     tag,
     attributes,
     children,
-    empty2(),
+    empty3(),
     false,
     false
   );
@@ -1454,6 +1828,12 @@ function p(attrs, children) {
 }
 function ul(attrs, children) {
   return element2("ul", attrs, children);
+}
+function a(attrs, children) {
+  return element2("a", attrs, children);
+}
+function img(attrs) {
+  return element2("img", attrs, empty_list);
 }
 
 // build/dev/javascript/lustre/lustre/vdom/patch.mjs
@@ -1585,10 +1965,10 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
     let mapper = loop$mapper;
     let events = loop$events;
     let old = loop$old;
-    let new$8 = loop$new;
+    let new$7 = loop$new;
     let added = loop$added;
     let removed = loop$removed;
-    if (new$8 instanceof Empty) {
+    if (new$7 instanceof Empty) {
       if (old instanceof Empty) {
         return new AttributeChange(added, removed, events);
       } else {
@@ -1604,7 +1984,7 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
           loop$mapper = mapper;
           loop$events = events$1;
           loop$old = old$1;
-          loop$new = new$8;
+          loop$new = new$7;
           loop$added = added;
           loop$removed = removed$1;
         } else {
@@ -1616,16 +1996,16 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
           loop$mapper = mapper;
           loop$events = events;
           loop$old = old$1;
-          loop$new = new$8;
+          loop$new = new$7;
           loop$added = added;
           loop$removed = removed$1;
         }
       }
     } else if (old instanceof Empty) {
-      let $ = new$8.head;
+      let $ = new$7.head;
       if ($ instanceof Event2) {
         let next = $;
-        let new$1 = new$8.tail;
+        let new$1 = new$7.tail;
         let name = $.name;
         let handler = $.handler;
         let added$1 = prepend(next, added);
@@ -1640,7 +2020,7 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
         loop$removed = removed;
       } else {
         let next = $;
-        let new$1 = new$8.tail;
+        let new$1 = new$7.tail;
         let added$1 = prepend(next, added);
         loop$controlled = controlled;
         loop$path = path;
@@ -1652,8 +2032,8 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
         loop$removed = removed;
       }
     } else {
-      let next = new$8.head;
-      let remaining_new = new$8.tail;
+      let next = new$7.head;
+      let remaining_new = new$7.tail;
       let prev = old.head;
       let remaining_old = old.tail;
       let $ = compare3(prev, next);
@@ -1667,7 +2047,7 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
           loop$mapper = mapper;
           loop$events = events$1;
           loop$old = remaining_old;
-          loop$new = new$8;
+          loop$new = new$7;
           loop$added = added;
           loop$removed = removed$1;
         } else {
@@ -1677,7 +2057,7 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
           loop$mapper = mapper;
           loop$events = events;
           loop$old = remaining_old;
-          loop$new = new$8;
+          loop$new = new$7;
           loop$added = added;
           loop$removed = removed$1;
         }
@@ -1869,7 +2249,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
   while (true) {
     let old = loop$old;
     let old_keyed = loop$old_keyed;
-    let new$8 = loop$new;
+    let new$7 = loop$new;
     let new_keyed = loop$new_keyed;
     let moved = loop$moved;
     let moved_offset = loop$moved_offset;
@@ -1881,7 +2261,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
     let children = loop$children;
     let mapper = loop$mapper;
     let events = loop$events;
-    if (new$8 instanceof Empty) {
+    if (new$7 instanceof Empty) {
       if (old instanceof Empty) {
         return new Diff(
           new Patch(patch_index, removed, changes, children),
@@ -1901,7 +2281,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
         let events$1 = remove_child(events, path, node_index, prev);
         loop$old = old$1;
         loop$old_keyed = old_keyed;
-        loop$new = new$8;
+        loop$new = new$7;
         loop$new_keyed = new_keyed;
         loop$moved = moved;
         loop$moved_offset = moved_offset;
@@ -1920,19 +2300,19 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
         mapper,
         path,
         node_index,
-        new$8
+        new$7
       );
-      let insert4 = insert3(new$8, node_index - moved_offset);
+      let insert4 = insert3(new$7, node_index - moved_offset);
       let changes$1 = prepend(insert4, changes);
       return new Diff(
         new Patch(patch_index, removed, changes$1, children),
         events$1
       );
     } else {
-      let next = new$8.head;
+      let next = new$7.head;
       let prev = old.head;
       if (prev.key !== next.key) {
-        let new_remaining = new$8.tail;
+        let new_remaining = new$7.tail;
         let old_remaining = old.tail;
         let next_did_exist = get(old_keyed, next.key);
         let prev_does_exist = has_key2(new_keyed, prev.key);
@@ -1943,7 +2323,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
             if ($) {
               loop$old = old_remaining;
               loop$old_keyed = old_keyed;
-              loop$new = new$8;
+              loop$new = new$7;
               loop$new_keyed = new_keyed;
               loop$moved = moved;
               loop$moved_offset = moved_offset - 1;
@@ -1965,7 +2345,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
               let moved_offset$1 = moved_offset + 1;
               loop$old = prepend(match, old);
               loop$old_keyed = old_keyed;
-              loop$new = new$8;
+              loop$new = new$7;
               loop$new_keyed = new_keyed;
               loop$moved = moved$1;
               loop$moved_offset = moved_offset$1;
@@ -1985,7 +2365,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
             let moved_offset$1 = moved_offset - 1;
             loop$old = old_remaining;
             loop$old_keyed = old_keyed;
-            loop$new = new$8;
+            loop$new = new$7;
             loop$new_keyed = new_keyed;
             loop$moved = moved;
             loop$moved_offset = moved_offset$1;
@@ -2048,20 +2428,20 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
       } else {
         let $ = old.head;
         if ($ instanceof Fragment) {
-          let $1 = new$8.head;
+          let $1 = new$7.head;
           if ($1 instanceof Fragment) {
             let next$1 = $1;
-            let new$1 = new$8.tail;
+            let new$1 = new$7.tail;
             let prev$1 = $;
             let old$1 = old.tail;
             let composed_mapper = compose_mapper(mapper, next$1.mapper);
-            let child_path = add2(path, node_index, next$1.key);
+            let child_path = add3(path, node_index, next$1.key);
             let child = do_diff(
               prev$1.children,
               prev$1.keyed_children,
               next$1.children,
               next$1.keyed_children,
-              empty2(),
+              empty3(),
               0,
               0,
               0,
@@ -2107,7 +2487,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
             loop$events = child.events;
           } else {
             let next$1 = $1;
-            let new_remaining = new$8.tail;
+            let new_remaining = new$7.tail;
             let prev$1 = $;
             let old_remaining = old.tail;
             let change = replace2(node_index - moved_offset, next$1);
@@ -2138,18 +2518,18 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
             loop$events = events$1;
           }
         } else if ($ instanceof Element) {
-          let $1 = new$8.head;
+          let $1 = new$7.head;
           if ($1 instanceof Element) {
             let next$1 = $1;
             let prev$1 = $;
             if (prev$1.namespace === next$1.namespace && prev$1.tag === next$1.tag) {
-              let new$1 = new$8.tail;
+              let new$1 = new$7.tail;
               let old$1 = old.tail;
               let composed_mapper = compose_mapper(
                 mapper,
                 next$1.mapper
               );
-              let child_path = add2(path, node_index, next$1.key);
+              let child_path = add3(path, node_index, next$1.key);
               let controlled = is_controlled(
                 events,
                 next$1.namespace,
@@ -2184,7 +2564,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
                 prev$1.keyed_children,
                 next$1.children,
                 next$1.keyed_children,
-                empty2(),
+                empty3(),
                 0,
                 0,
                 0,
@@ -2230,7 +2610,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
               loop$events = child.events;
             } else {
               let next$2 = $1;
-              let new_remaining = new$8.tail;
+              let new_remaining = new$7.tail;
               let prev$2 = $;
               let old_remaining = old.tail;
               let change = replace2(node_index - moved_offset, next$2);
@@ -2267,7 +2647,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
             }
           } else {
             let next$1 = $1;
-            let new_remaining = new$8.tail;
+            let new_remaining = new$7.tail;
             let prev$1 = $;
             let old_remaining = old.tail;
             let change = replace2(node_index - moved_offset, next$1);
@@ -2298,12 +2678,12 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
             loop$events = events$1;
           }
         } else if ($ instanceof Text) {
-          let $1 = new$8.head;
+          let $1 = new$7.head;
           if ($1 instanceof Text) {
             let next$1 = $1;
             let prev$1 = $;
             if (prev$1.content === next$1.content) {
-              let new$1 = new$8.tail;
+              let new$1 = new$7.tail;
               let old$1 = old.tail;
               loop$old = old$1;
               loop$old_keyed = old_keyed;
@@ -2321,7 +2701,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
               loop$events = events;
             } else {
               let next$2 = $1;
-              let new$1 = new$8.tail;
+              let new$1 = new$7.tail;
               let old$1 = old.tail;
               let child = new$5(
                 node_index,
@@ -2346,7 +2726,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
             }
           } else {
             let next$1 = $1;
-            let new_remaining = new$8.tail;
+            let new_remaining = new$7.tail;
             let prev$1 = $;
             let old_remaining = old.tail;
             let change = replace2(node_index - moved_offset, next$1);
@@ -2377,14 +2757,14 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
             loop$events = events$1;
           }
         } else {
-          let $1 = new$8.head;
+          let $1 = new$7.head;
           if ($1 instanceof UnsafeInnerHtml) {
             let next$1 = $1;
-            let new$1 = new$8.tail;
+            let new$1 = new$7.tail;
             let prev$1 = $;
             let old$1 = old.tail;
             let composed_mapper = compose_mapper(mapper, next$1.mapper);
-            let child_path = add2(path, node_index, next$1.key);
+            let child_path = add3(path, node_index, next$1.key);
             let $2 = diff_attributes(
               false,
               child_path,
@@ -2445,7 +2825,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
             loop$events = events$1;
           } else {
             let next$1 = $1;
-            let new_remaining = new$8.tail;
+            let new_remaining = new$7.tail;
             let prev$1 = $;
             let old_remaining = old.tail;
             let change = replace2(node_index - moved_offset, next$1);
@@ -2480,13 +2860,13 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
     }
   }
 }
-function diff(events, old, new$8) {
+function diff(events, old, new$7) {
   return do_diff(
     toList([old]),
-    empty2(),
-    toList([new$8]),
-    empty2(),
-    empty2(),
+    empty3(),
+    toList([new$7]),
+    empty3(),
+    empty3(),
     0,
     0,
     0,
@@ -2800,29 +3180,29 @@ var Reconciler = class {
         addEventListener(node, name, handleEvent, { passive });
         this.#updateDebounceThrottle(throttles, name, throttleDelay);
         this.#updateDebounceThrottle(debouncers, name, debounceDelay);
-        handlers.set(name, (event4) => this.#handleEvent(attribute3, event4));
+        handlers.set(name, (event2) => this.#handleEvent(attribute3, event2));
         break;
       }
     }
   }
-  #updateDebounceThrottle(map4, name, delay) {
-    const debounceOrThrottle = map4.get(name);
+  #updateDebounceThrottle(map3, name, delay) {
+    const debounceOrThrottle = map3.get(name);
     if (delay > 0) {
       if (debounceOrThrottle) {
         debounceOrThrottle.delay = delay;
       } else {
-        map4.set(name, { delay });
+        map3.set(name, { delay });
       }
     } else if (debounceOrThrottle) {
       const { timeout } = debounceOrThrottle;
       if (timeout) {
         clearTimeout(timeout);
       }
-      map4.delete(name);
+      map3.delete(name);
     }
   }
-  #handleEvent(attribute3, event4) {
-    const { currentTarget, type } = event4;
+  #handleEvent(attribute3, event2) {
+    const { currentTarget, type } = event2;
     const { debouncers, throttles } = currentTarget[meta];
     const path = getPath(currentTarget);
     const {
@@ -2831,20 +3211,20 @@ var Reconciler = class {
       include,
       immediate: immediate2
     } = attribute3;
-    if (prevent.kind === always_kind) event4.preventDefault();
-    if (stop.kind === always_kind) event4.stopPropagation();
+    if (prevent.kind === always_kind) event2.preventDefault();
+    if (stop.kind === always_kind) event2.stopPropagation();
     if (type === "submit") {
-      event4.detail ??= {};
-      event4.detail.formData = [...new FormData(event4.target).entries()];
+      event2.detail ??= {};
+      event2.detail.formData = [...new FormData(event2.target).entries()];
     }
-    const data = this.#useServerEvents ? createServerEvent(event4, include ?? []) : event4;
+    const data = this.#useServerEvents ? createServerEvent(event2, include ?? []) : event2;
     const throttle = throttles.get(type);
     if (throttle) {
       const now = Date.now();
       const last = throttle.last || 0;
       if (now > last + throttle.delay) {
         throttle.last = now;
-        throttle.lastEvent = event4;
+        throttle.lastEvent = event2;
         this.#dispatch(data, path, type, immediate2);
       }
     }
@@ -2852,7 +3232,7 @@ var Reconciler = class {
     if (debounce) {
       clearTimeout(debounce.timeout);
       debounce.timeout = setTimeout(() => {
-        if (event4 === throttles.get(type)?.lastEvent) return;
+        if (event2 === throttles.get(type)?.lastEvent) return;
         this.#dispatch(data, path, type, immediate2);
       }, debounce.delay);
     }
@@ -2872,22 +3252,22 @@ var iterate = (list4, callback) => {
     }
   }
 };
-var handleEvent = (event4) => {
-  const { currentTarget, type } = event4;
+var handleEvent = (event2) => {
+  const { currentTarget, type } = event2;
   const handler = currentTarget[meta].handlers.get(type);
-  handler(event4);
+  handler(event2);
 };
-var createServerEvent = (event4, include = []) => {
+var createServerEvent = (event2, include = []) => {
   const data = {};
-  if (event4.type === "input" || event4.type === "change") {
+  if (event2.type === "input" || event2.type === "change") {
     include.push("target.value");
   }
-  if (event4.type === "submit") {
+  if (event2.type === "submit") {
     include.push("detail.formData");
   }
   for (const property3 of include) {
     const path = property3.split(".");
-    for (let i = 0, input = event4, output = data; i < path.length; i++) {
+    for (let i = 0, input = event2, output = data; i < path.length; i++) {
       if (i === path.length - 1) {
         output[path[i]] = input[path[i]];
         break;
@@ -2967,7 +3347,7 @@ function do_extract_keyed_children(loop$key_children_pairs, loop$keyed_children,
 function extract_keyed_children(children) {
   return do_extract_keyed_children(
     children,
-    empty2(),
+    empty3(),
     empty_list
   );
 }
@@ -3146,31 +3526,31 @@ var Runtime = class {
     this.#model = model;
     this.#view = view2;
     this.#update = update3;
-    this.root.addEventListener("context-request", (event4) => {
-      if (!(event4.context && event4.callback)) return;
-      if (!this.#contexts.has(event4.context)) return;
-      event4.stopImmediatePropagation();
-      const context = this.#contexts.get(event4.context);
-      if (event4.subscribe) {
-        const callbackRef = new WeakRef(event4.callback);
+    this.root.addEventListener("context-request", (event2) => {
+      if (!(event2.context && event2.callback)) return;
+      if (!this.#contexts.has(event2.context)) return;
+      event2.stopImmediatePropagation();
+      const context = this.#contexts.get(event2.context);
+      if (event2.subscribe) {
+        const callbackRef = new WeakRef(event2.callback);
         const unsubscribe = () => {
           context.subscribers = context.subscribers.filter(
             (subscriber) => subscriber !== callbackRef
           );
         };
         context.subscribers.push([callbackRef, unsubscribe]);
-        event4.callback(context.value, unsubscribe);
+        event2.callback(context.value, unsubscribe);
       } else {
-        event4.callback(context.value);
+        event2.callback(context.value);
       }
     });
-    this.#reconciler = new Reconciler(this.root, (event4, path, name) => {
-      const [events, result] = handle(this.#events, path, name, event4);
+    this.#reconciler = new Reconciler(this.root, (event2, path, name) => {
+      const [events, result] = handle(this.#events, path, name, event2);
       this.#events = events;
       if (result.isOk()) {
         const handler = result[0];
-        if (handler.stop_propagation) event4.stopPropagation();
-        if (handler.prevent_default) event4.preventDefault();
+        if (handler.stop_propagation) event2.stopPropagation();
+        if (handler.prevent_default) event2.preventDefault();
         this.dispatch(handler.message, false);
       }
     });
@@ -3191,10 +3571,10 @@ var Runtime = class {
       this.#tick(effects);
     }
   }
-  emit(event4, data) {
-    const target = this.root.host ?? this.root;
-    target.dispatchEvent(
-      new CustomEvent(event4, {
+  emit(event2, data) {
+    const target2 = this.root.host ?? this.root;
+    target2.dispatchEvent(
+      new CustomEvent(event2, {
         detail: data,
         bubbles: true,
         composed: true
@@ -3238,7 +3618,7 @@ var Runtime = class {
   #shouldFlush = false;
   #actions = {
     dispatch: (msg, immediate2) => this.dispatch(msg, immediate2),
-    emit: (event4, data) => this.emit(event4, data),
+    emit: (event2, data) => this.emit(event2, data),
     select: () => {
     },
     root: () => this.root,
@@ -3301,13 +3681,13 @@ function makeEffect(synchronous) {
     before_paint: empty_list
   };
 }
-function listAppend(a, b) {
-  if (a instanceof Empty) {
+function listAppend(a2, b) {
+  if (a2 instanceof Empty) {
     return b;
   } else if (b instanceof Empty) {
-    return a;
+    return a2;
   } else {
-    return append(a, b);
+    return append(a2, b);
   }
 }
 
@@ -3389,8 +3769,8 @@ var Spa = class {
   dispatch(msg, immediate2) {
     this.#runtime.dispatch(msg, immediate2);
   }
-  emit(event4, data) {
-    this.#runtime.emit(event4, data);
+  emit(event2, data) {
+    this.#runtime.emit(event2, data);
   }
 };
 var start = ({ init: init2, update: update3, view: view2 }, selector, flags) => {
@@ -3440,93 +3820,452 @@ function start3(app, selector, start_args) {
   );
 }
 
-// build/dev/javascript/app/app.mjs
-var FILEPATH = "src/app.gleam";
+// build/dev/javascript/app/data.mjs
 var JobExperience = class extends CustomType {
-  constructor(company, position, start_date, end_date, place_of_work) {
+  constructor(company, position, start_date, end_date, place_of_work, logo, technologies) {
     super();
     this.company = company;
     this.position = position;
     this.start_date = start_date;
     this.end_date = end_date;
     this.place_of_work = place_of_work;
+    this.logo = logo;
+    this.technologies = technologies;
   }
 };
-var Incr = class extends CustomType {
-};
-function init(_) {
-  return 0;
-}
-function update2(model, msg) {
-  if (msg instanceof Incr) {
-    return model + 1;
-  } else {
-    return model - 1;
+var Education = class extends CustomType {
+  constructor(degree, university, field2, start_year, end_year, place_of_study, logo) {
+    super();
+    this.degree = degree;
+    this.university = university;
+    this.field = field2;
+    this.start_year = start_year;
+    this.end_year = end_year;
+    this.place_of_study = place_of_study;
+    this.logo = logo;
   }
-}
-function view_job_experience(job_experience) {
-  return li(
-    toList([class$("pb-3 sm:pb-4")]),
-    toList([
-      p(
-        toList([
-          class$("text-lg font-medium text-gray-900 truncate dark:text-white")
-        ]),
-        toList([text2(job_experience.company)])
-      ),
-      p(
-        toList([class$("text-md text-gray-500 truncate dark:text-gray-400")]),
-        toList([text2(job_experience.position)])
-      ),
-      p(
-        toList([class$("text-md text-gray-500 truncate dark:text-gray-400")]),
-        toList([text2(job_experience.start_date)])
-      ),
-      p(
-        toList([class$("text-md text-gray-500 truncate dark:text-gray-400")]),
-        toList([text2(job_experience.place_of_work)])
-      )
-    ])
-  );
-}
+};
+var Language = class extends CustomType {
+  constructor(name, emoji, level) {
+    super();
+    this.name = name;
+    this.emoji = emoji;
+    this.level = level;
+  }
+};
+var Social = class extends CustomType {
+  constructor(name, url, logo) {
+    super();
+    this.name = name;
+    this.url = url;
+    this.logo = logo;
+  }
+};
+var Skill = class extends CustomType {
+  constructor(name, description, logo, major) {
+    super();
+    this.name = name;
+    this.description = description;
+    this.logo = logo;
+    this.major = major;
+  }
+};
 var job_experience_list = /* @__PURE__ */ toList([
   /* @__PURE__ */ new JobExperience(
     "Rossum",
     "Frontend Engineer",
-    "2022-03-01",
+    [2022, /* @__PURE__ */ new March()],
     /* @__PURE__ */ new None(),
-    "Prague, Czechia"
+    "Prague, Czechia",
+    "rossum",
+    /* @__PURE__ */ toList(["ts", "python"])
   ),
   /* @__PURE__ */ new JobExperience(
     "ITSCM GmbH",
     "Javascript Engineer",
-    "2021-01-01",
-    /* @__PURE__ */ new Some("2022-01-01"),
-    "Munich, Germany"
+    [2020, /* @__PURE__ */ new October()],
+    /* @__PURE__ */ new Some([2022, /* @__PURE__ */ new April()]),
+    "Munich, Germany",
+    "itscm",
+    /* @__PURE__ */ toList(["ts"])
   ),
   /* @__PURE__ */ new JobExperience(
     "Orchestr8",
-    "Javascript Engineer",
-    "2021-01-01",
-    /* @__PURE__ */ new Some("2022-01-01"),
-    "Prague, Czechia"
+    "Frontend Engineer",
+    [2018, /* @__PURE__ */ new August()],
+    /* @__PURE__ */ new Some([2020, /* @__PURE__ */ new February()]),
+    "Prague, Czechia",
+    "orchestr8",
+    /* @__PURE__ */ toList(["ts"])
+  ),
+  /* @__PURE__ */ new JobExperience(
+    "Appio",
+    "Mobile Developer",
+    [2017, /* @__PURE__ */ new June()],
+    /* @__PURE__ */ new Some([2017, /* @__PURE__ */ new October()]),
+    "Prague, Czechia",
+    "appio",
+    /* @__PURE__ */ toList(["csharp"])
+  ),
+  /* @__PURE__ */ new JobExperience(
+    "Appio",
+    "PHP Developer",
+    [2013, /* @__PURE__ */ new November()],
+    /* @__PURE__ */ new Some([2017, /* @__PURE__ */ new January()]),
+    "Prague, Czechia",
+    "appio",
+    /* @__PURE__ */ toList(["php", "js"])
   )
 ]);
-function view(model) {
-  let count = to_string(model);
+var list_of_education = /* @__PURE__ */ toList([
+  /* @__PURE__ */ new Education(
+    "Master's degree",
+    "Charles University",
+    "Mathematics for Information Technologies",
+    2017,
+    2020,
+    "Prague, Czechia",
+    "uk"
+  ),
+  /* @__PURE__ */ new Education(
+    "Bachelor's degree",
+    "Charles University",
+    "General Mathematics",
+    2014,
+    2017,
+    "Prague, Czechia",
+    "uk"
+  )
+]);
+var list_of_languages = /* @__PURE__ */ toList([
+  /* @__PURE__ */ new Language("Czech", "\u{1F1E8}\u{1F1FF}", "C2 (Native speaker)"),
+  /* @__PURE__ */ new Language("English", "\u{1F1EC}\u{1F1E7}", "C2 (Cambridge certificate)"),
+  /* @__PURE__ */ new Language("German", "\u{1F1E9}\u{1F1EA}", "B1 (approximate)")
+]);
+var list_of_skills = /* @__PURE__ */ toList([
+  /* @__PURE__ */ new Skill(
+    "Typescript",
+    "Over 6 years of experience - most recently in React, but with earlier professional experience in Angular, Vue, and Express.",
+    "ts",
+    true
+  ),
+  /* @__PURE__ */ new Skill(
+    "Python",
+    "Experience with Python and Django after working on several Python-based codebases and university projects.",
+    "python",
+    true
+  ),
+  /* @__PURE__ */ new Skill(
+    "Elixir",
+    "Non-professional experience with Elixir, Phoenix and Ash framework and Gleam (used for numerous personal projects).",
+    "elixir",
+    true
+  ),
+  /* @__PURE__ */ new Skill(
+    "PHP",
+    "Over 5 years of experience (although very long ago) with PHP, Nette framework and Symfony framework.",
+    "php",
+    false
+  ),
+  /* @__PURE__ */ new Skill(
+    "C#",
+    "Few-month endeavour with mobile development using Xamarin framework and .NET backend.",
+    "csharp",
+    false
+  )
+]);
+var list_of_socials = /* @__PURE__ */ toList([
+  /* @__PURE__ */ new Social(
+    "GitHub",
+    "https://github.com/surypavel/",
+    "github"
+  ),
+  /* @__PURE__ */ new Social(
+    "LinkedIn",
+    "https://linkedin.com/in/pavelsury",
+    "linkedin"
+  )
+]);
+
+// build/dev/javascript/app/timestamp_difference.mjs
+function years_and_months_between(start_date, finish_date) {
+  let years_diff = finish_date.year - start_date.year;
+  let months_diff = month_to_int(finish_date.month) - month_to_int(
+    start_date.month
+  ) + 1;
+  let $ = months_diff < 0;
+  if ($) {
+    return [years_diff - 1, months_diff + 12];
+  } else {
+    return [years_diff, months_diff];
+  }
+}
+function timestamp_difference(start_date, end_date) {
+  let start_date_calendar = new Date2(start_date[0], start_date[1], 1);
+  let _block;
+  if (end_date instanceof Some) {
+    let end_date$1 = end_date[0];
+    _block = new Date2(end_date$1[0], end_date$1[1], 1);
+  } else {
+    let _pipe = system_time2();
+    let _pipe$1 = to_calendar(_pipe, seconds(0));
+    _block = first(_pipe$1);
+  }
+  let end_date_calendar = _block;
+  let diff2 = years_and_months_between(start_date_calendar, end_date_calendar);
+  let years = diff2[0];
+  let months = diff2[1];
+  let $ = years > 0;
+  if ($) {
+    return to_string(years) + " yrs " + to_string(months) + " mos";
+  } else {
+    return to_string(months) + " mos";
+  }
+}
+
+// build/dev/javascript/app/app.mjs
+var FILEPATH = "src/app.gleam";
+function init(_) {
+  return 0;
+}
+function update2(model, msg) {
+  throw makeError(
+    "todo",
+    FILEPATH,
+    "app",
+    26,
+    "update",
+    "`todo` expression evaluated. This code has not yet been implemented.",
+    {}
+  );
+}
+function view_job_experience(job_experience) {
+  return li(
+    toList([
+      class$(
+        "py-3 flex flex-row items-center space-x-4 relative justify-between"
+      )
+    ]),
+    toList([
+      div(
+        toList([class$("shrink-0 grow-0")]),
+        toList([
+          div(
+            toList([
+              class$(
+                "bg-white bg-contain w-12 h-12 sm:w-24 sm:h-24 rounded-full bg-no-repeat bg-center"
+              ),
+              style(
+                "background-image",
+                "url(./priv/static/logo/" + job_experience.logo + ".png)"
+              )
+            ]),
+            toList([])
+          )
+        ])
+      ),
+      div(
+        toList([class$("ml-4 grow-1 sm:grow-0 sm:min-w-60 overflow-hidden")]),
+        toList([
+          p(
+            toList([class$("text-xl font-medium text-black truncate")]),
+            toList([text2(job_experience.company)])
+          ),
+          p(
+            toList([class$("text-md text-slate-800 truncate")]),
+            toList([text2(job_experience.position)])
+          ),
+          p(
+            toList([class$("text-md text-stone-500 truncate")]),
+            toList([
+              text2(
+                timestamp_difference(
+                  job_experience.start_date,
+                  job_experience.end_date
+                )
+              )
+            ])
+          ),
+          p(
+            toList([class$("text-md text-stone-500 truncate")]),
+            toList([text2(job_experience.place_of_work)])
+          )
+        ])
+      ),
+      div(
+        toList([class$("shrink-0 grow-1 hidden sm:flex flex-row space-x-2")]),
+        (() => {
+          let _pipe = job_experience.technologies;
+          return map(
+            _pipe,
+            (technology) => {
+              return div(
+                toList([
+                  class$("bg-contain opacity-80 hover:opacity-90 w-6 h-6"),
+                  style(
+                    "background-image",
+                    "url(./priv/static/lang/" + technology + ".png)"
+                  )
+                ]),
+                toList([])
+              );
+            }
+          );
+        })()
+      ),
+      div(
+        toList([class$("relative h-[100px] w-10 shrink-0")]),
+        toList([
+          p(
+            toList([
+              class$(
+                "text-sm text-stone-400 font-semibold truncate absolute bottom-[-12px] right-0"
+              )
+            ]),
+            toList([
+              text2(
+                to_string(
+                  (() => {
+                    let _pipe = job_experience.start_date;
+                    return first(_pipe);
+                  })()
+                )
+              )
+            ])
+          ),
+          p(
+            toList([
+              class$(
+                "absolute top-0 right-4 h-20 border-r border-stone-400 border-dashed"
+              )
+            ]),
+            toList([])
+          )
+        ])
+      )
+    ])
+  );
+}
+function view_education(education, is_last) {
+  let _block;
+  if (is_last) {
+    _block = toList([
+      p(
+        toList([
+          class$(
+            "text-sm text-stone-400 font-semibold truncate absolute top-[-32px] right-0"
+          )
+        ]),
+        toList([text2(to_string(education.end_year))])
+      )
+    ]);
+  } else {
+    _block = toList([]);
+  }
+  let append4 = _block;
+  return li(
+    toList([class$("py-3 flex flex-row items-center space-x-4")]),
+    toList([
+      div(
+        toList([class$("shrink-0")]),
+        toList([
+          div(
+            toList([
+              class$(
+                "bg-white bg-contain w-12 h-12 sm:w-24 sm:h-24 rounded-full bg-no-repeat bg-center"
+              ),
+              style(
+                "background-image",
+                "url(./priv/static/logo/" + education.logo + ".png)"
+              )
+            ]),
+            toList([])
+          )
+        ])
+      ),
+      div(
+        toList([class$("ml-4 shrink-1 grow-1 overflow-hidden")]),
+        toList([
+          p(
+            toList([class$("text-xl font-medium text-black truncate")]),
+            toList([text2(education.university)])
+          ),
+          p(
+            toList([
+              class$("text-md text-slate-800 truncate"),
+              title(education.field)
+            ]),
+            toList([text2(education.field)])
+          ),
+          p(
+            toList([
+              class$("text-md text-stone-500 truncate"),
+              title(education.degree)
+            ]),
+            toList([text2(education.degree)])
+          ),
+          p(
+            toList([
+              class$("text-md text-stone-500 truncate"),
+              title(education.place_of_study)
+            ]),
+            toList([text2(education.place_of_study)])
+          )
+        ])
+      ),
+      div(
+        toList([class$("relative h-[100px] w-10 shrink-0")]),
+        prepend(
+          p(
+            toList([
+              class$(
+                "text-sm text-stone-400 font-semibold truncate absolute bottom-[-12px] right-0"
+              )
+            ]),
+            toList([text2(to_string(education.start_year))])
+          ),
+          prepend(
+            p(
+              toList([
+                class$(
+                  "absolute top-0 right-4 h-20 border-r border-stone-400 border-dashed"
+                )
+              ]),
+              toList([])
+            ),
+            append4
+          )
+        )
+      )
+    ])
+  );
+}
+function view(_) {
   return div(
     toList([]),
     toList([
       div(
-        toList([]),
+        toList([class$("bg-white border-t-4 border-stone-100")]),
         toList([
           div(
             toList([
-              class$("container mx-auto flex flex-col gap-4 items-center")
+              class$(
+                "container max-w-150 mx-auto flex flex-col gap-4 items-center"
+              )
             ]),
             toList([
+              img(
+                toList([
+                  class$("w-full max-w-150 mt-20 pl-5"),
+                  src("./priv/static/xxgenwhite.jpeg")
+                ])
+              ),
               h1(
-                toList([class$("text-slate-600 text-5xl p-10 mt-50")]),
+                toList([
+                  class$(
+                    "text-cyan-600 opacity-80 text-5xl pb-20 pt-0 font-[Rancho]"
+                  )
+                ]),
                 toList([text2("Pavel Sur\xFD")])
               )
             ])
@@ -3534,35 +4273,317 @@ function view(model) {
         ])
       ),
       div(
-        toList([class$("bg-cyan-50 px-10")]),
+        toList([class$("bg-white px-10 py-10")]),
         toList([
           div(
-            toList([class$("container mx-auto flex flex-col gap-4")]),
             toList([
-              h2(
-                toList([class$("text-cyan-500 text-3xl pt-10")]),
-                toList([text2("About")])
-              ),
-              p(
-                toList([class$("text-cyan-800 text-2xl")]),
+              class$(
+                "container max-w-170 mx-auto flex flex-col sm:flex-row items-center gap-8"
+              )
+            ]),
+            toList([
+              div(
+                toList([class$("flex flex-col gap-4")]),
                 toList([
-                  text2(
-                    "I am a software engineer with a passion for building scalable and maintainable applications."
+                  h2(
+                    toList([class$("text-stone-800 text-3xl")]),
+                    toList([text2("About")])
+                  ),
+                  p(
+                    toList([class$("text-slate-800 text-2xl")]),
+                    toList([
+                      text2(
+                        "I am a software engineer with experience with Typescript, Python and Elixir."
+                      )
+                    ])
+                  ),
+                  p(
+                    toList([class$("text-stone-500 text-md")]),
+                    toList([text2("I like maths and cats.")])
                   )
                 ])
+              ),
+              div(
+                toList([
+                  class$(
+                    "w-40 h-40 shrink-0 rounded-full bg-no-repeat bg-center bg-cover"
+                  ),
+                  style("background-image", "url(./priv/static/photo/me_2.png)")
+                ]),
+                toList([])
               )
             ])
-          ),
+          )
+        ])
+      ),
+      div(
+        toList([class$("bg-stone-50 px-10 py-10")]),
+        toList([
           div(
-            toList([class$("container mx-auto flex flex-col gap-4")]),
+            toList([class$("container max-w-170 mx-auto flex flex-col gap-4")]),
             toList([
               h2(
-                toList([class$("text-cyan-500 text-3xl pt-10")]),
+                toList([class$("text-stone-800 text-3xl")]),
                 toList([text2("Experience")])
               ),
               ul(
-                toList([class$("max-w-md divide-y divide-gray-200")]),
+                toList([]),
                 map(job_experience_list, view_job_experience)
+              )
+            ])
+          )
+        ])
+      ),
+      div(
+        toList([class$("bg-stone-100 px-10 py-10")]),
+        toList([
+          div(
+            toList([class$("container max-w-170 mx-auto flex flex-col gap-4")]),
+            toList([
+              h2(
+                toList([class$("text-stone-800 text-3xl")]),
+                toList([text2("Education")])
+              ),
+              ul(
+                toList([]),
+                index_map(
+                  list_of_education,
+                  (education, index2) => {
+                    return view_education(education, index2 === 0);
+                  }
+                )
+              )
+            ])
+          )
+        ])
+      ),
+      div(
+        toList([class$("bg-stone-50 px-10 py-10")]),
+        toList([
+          div(
+            toList([class$("container max-w-170 mx-auto flex flex-col gap-4")]),
+            toList([
+              h2(
+                toList([class$("text-stone-800 text-3xl")]),
+                toList([text2("Languages")])
+              ),
+              ul(
+                toList([]),
+                map(
+                  list_of_languages,
+                  (language) => {
+                    return li(
+                      toList([
+                        class$(
+                          "py-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
+                        )
+                      ]),
+                      toList([
+                        div(
+                          toList([
+                            class$(
+                              "flex flex-row items-center gap-2 min-w-[160px]"
+                            )
+                          ]),
+                          toList([
+                            p(
+                              toList([class$("text-slate-800 text-3xl")]),
+                              toList([text2(language.emoji)])
+                            ),
+                            p(
+                              toList([class$("text-slate-800 text-xl")]),
+                              toList([text2(language.name)])
+                            )
+                          ])
+                        ),
+                        p(
+                          toList([class$("text-stone-500 text-md")]),
+                          toList([text2(language.level)])
+                        )
+                      ])
+                    );
+                  }
+                )
+              )
+            ])
+          )
+        ])
+      ),
+      div(
+        toList([class$("bg-stone-100 px-10 py-10")]),
+        toList([
+          div(
+            toList([class$("container max-w-170 mx-auto flex flex-col gap-4")]),
+            toList([
+              h2(
+                toList([class$("text-stone-800 text-3xl")]),
+                toList([text2("Major skills")])
+              ),
+              ul(
+                toList([]),
+                (() => {
+                  let _pipe = list_of_skills;
+                  let _pipe$1 = filter(
+                    _pipe,
+                    (skill) => {
+                      return skill.major === true;
+                    }
+                  );
+                  return map(
+                    _pipe$1,
+                    (skill) => {
+                      return li(
+                        toList([
+                          class$(
+                            "py-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
+                          )
+                        ]),
+                        toList([
+                          div(
+                            toList([
+                              class$(
+                                "flex flex-row items-center gap-2 min-w-[160px]"
+                              )
+                            ]),
+                            toList([
+                              img(
+                                toList([
+                                  class$("w-6 h-6"),
+                                  src(
+                                    "./priv/static/lang/" + skill.logo + ".png"
+                                  )
+                                ])
+                              ),
+                              p(
+                                toList([class$("text-slate-800 text-xl")]),
+                                toList([text2(skill.name)])
+                              )
+                            ])
+                          ),
+                          p(
+                            toList([class$("text-stone-500 text-md")]),
+                            toList([text2(skill.description)])
+                          )
+                        ])
+                      );
+                    }
+                  );
+                })()
+              ),
+              h2(
+                toList([class$("text-stone-800 text-2xl")]),
+                toList([text2("Minor skills")])
+              ),
+              ul(
+                toList([]),
+                (() => {
+                  let _pipe = list_of_skills;
+                  let _pipe$1 = filter(
+                    _pipe,
+                    (skill) => {
+                      return skill.major === false;
+                    }
+                  );
+                  return map(
+                    _pipe$1,
+                    (skill) => {
+                      return li(
+                        toList([
+                          class$(
+                            "py-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
+                          )
+                        ]),
+                        toList([
+                          div(
+                            toList([
+                              class$(
+                                "flex flex-row items-center gap-2 min-w-[160px]"
+                              )
+                            ]),
+                            toList([
+                              img(
+                                toList([
+                                  class$("w-6 h-6"),
+                                  src(
+                                    "./priv/static/lang/" + skill.logo + ".png"
+                                  )
+                                ])
+                              ),
+                              p(
+                                toList([class$("text-slate-800 text-xl")]),
+                                toList([text2(skill.name)])
+                              )
+                            ])
+                          ),
+                          p(
+                            toList([class$("text-stone-500 text-md")]),
+                            toList([text2(skill.description)])
+                          )
+                        ])
+                      );
+                    }
+                  );
+                })()
+              )
+            ])
+          )
+        ])
+      ),
+      div(
+        toList([class$("bg-stone-900 px-10 py-10")]),
+        toList([
+          div(
+            toList([class$("container max-w-170 mx-auto flex flex-col gap-4")]),
+            toList([
+              h2(
+                toList([class$("text-stone-100 text-3xl")]),
+                toList([text2("Socials")])
+              ),
+              ul(
+                toList([]),
+                map(
+                  list_of_socials,
+                  (social) => {
+                    return li(
+                      toList([
+                        class$(
+                          "py-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
+                        )
+                      ]),
+                      toList([
+                        div(
+                          toList([class$("flex flex-row items-center gap-2")]),
+                          toList([
+                            img(
+                              toList([
+                                class$("w-6 h-6"),
+                                src(
+                                  "./priv/static/social/" + social.logo + ".png"
+                                )
+                              ])
+                            ),
+                            p(
+                              toList([
+                                class$("text-slate-100 text-xl min-w-[90px]")
+                              ]),
+                              toList([text2(social.name)])
+                            )
+                          ])
+                        ),
+                        a(
+                          toList([
+                            class$(
+                              "text-stone-500 text-md hover:text-stone-100 transition-colors duration-200"
+                            ),
+                            href(social.url),
+                            target("_blank")
+                          ]),
+                          toList([text2(social.url)])
+                        )
+                      ])
+                    );
+                  }
+                )
               )
             ])
           )
@@ -3579,10 +4600,10 @@ function main() {
       "let_assert",
       FILEPATH,
       "app",
-      22,
+      17,
       "main",
       "Pattern match failed, no pattern matched the value.",
-      { value: $, start: 811, end: 860, pattern_start: 822, pattern_end: 827 }
+      { value: $, start: 660, end: 709, pattern_start: 671, pattern_end: 676 }
     );
   }
   return void 0;
