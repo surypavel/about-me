@@ -16,7 +16,7 @@ target = "javascript"
 [dependencies]
 gleam_stdlib = ">= 0.60.0 and < 2.0.0"
 lustre = ">= 5.3.2 and < 6.0.0"
-gleam_time = "~> 1.0"
+gleam_time = ">= 1.4.0 and < 2.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"
